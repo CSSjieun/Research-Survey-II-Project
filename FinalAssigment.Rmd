@@ -38,6 +38,7 @@ head(Disc)
 
 Disc |> select(isocntry,country,qc19)
 unique(Disc$isocntry)
+
 ```
 
 
