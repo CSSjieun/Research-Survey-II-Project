@@ -1,0 +1,142 @@
+---
+title: "Final Assignment"
+author: "Valeria Contreras"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: false
+    df_print: paged
+---
+
+.
+
+```{=html}
+<style>
+body {
+text-align: justify}
+</style>
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, message=FALSE, warning=FALSE, knitr.purl.inline = TRUE )
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(forcats)
+library(gmodels)
+library(haven)
+```
+
+###Read data 
+```{r}
+Disc <- read_dta("Data/ZA7575.dta")
+head(Disc)
+
+Disc |> select(isocntry,country,qc19)
+unique(Disc$isocntry)
+```
+
+
+```{r}
+#Put the complete name of the countries. 
+Disc <- Disc |> mutate(country = case_when(
+  isocntry== "BE" ~ "Belgium",
+  isocntry== "DK" ~ "Denmark",
+  isocntry== "GR" ~ "Greece",
+  isocntry== "ES" ~ "Spain",
+  isocntry== "FI" ~"Finland",
+  isocntry== "FR" ~ "France",
+  isocntry== "IE" ~ "Ireland",
+  isocntry== "IT" ~ "Italy",
+  isocntry== "LU" ~ "Luxembourg",
+  isocntry== "NL" ~ "Netherlands",
+  isocntry== "AT" ~ "Austria",
+  isocntry== "PT" ~ "Portugal",
+  isocntry== "SE" ~ "Sweden",
+  isocntry== "DE-W" ~ "Germany (specifically the state of North Rhine-Westphalia)",
+  isocntry== "DE-E" ~ "Germany (specifically the state of Berlin)",
+  isocntry== "GB" ~ "United Kingdom",
+  isocntry== "BG" ~ "Bulgaria",
+  isocntry== "CY" ~ "Cyprus",
+  isocntry== "CZ" ~ "Czech Republic",
+  isocntry== "EE" ~ "Estonia",
+  isocntry== "HU" ~ "Hungary",
+  isocntry== "LV" ~ "Latvia",
+  isocntry== "LT" ~ "Lithuania",
+  isocntry== "MT" ~ "Malta",
+  isocntry== "PL" ~ "Poland",
+  isocntry== "RO" ~ "Romania",
+  isocntry== "SK" ~ "Slovakia",
+  isocntry== "SI" ~ "Slovenia",
+  isocntry== "HR" ~ "Croatia",
+  TRUE ~ NA_character_))
+
+view(Disc)
+
+```
+Convert numeric answers from qc19 to character answers
+
+```{r}
+Disc <- Disc %>% mutate(change_docs = case_when(
+  qc19 == 1 ~ "Yes",
+  qc19 == 2 ~ "No", 
+  qc19 == 3 ~ "DK", 
+  TRUE ~ NA_character_)) 
+```
+
+
+Count the qc19 answers by country 
+
+```{r}
+library(dplyr)
+
+#sum counts 
+opinions_by_country <- Disc %>%
+  group_by(country, change_docs) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = change_docs, values_from = count, values_fill = 0)
+
+opinions_by_country
+
+#percentage counts 
+Disc %>%
+  group_by(country, change_docs) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  group_by(country) %>%
+  mutate(total_count = sum(count)) %>%
+  mutate(percentage = (count / total_count) * 100) %>%
+  select(country, change_docs, percentage) %>%
+  pivot_wider(names_from = change_docs, values_from = percentage, values_fill = 0)
+
+```
+```{r}
+#Top 5 of countries that think that transgender persons should be able to change their civil documents to match their inner gender identity
+country_with_most_yes <- opinions_by_country %>%
+  filter(Yes > 0) %>%
+  arrange(desc(Yes)) %>%
+  head(5)
+country_with_most_yes
+```
+
+```{r}
+#Top 5 of countries that do not think that transgender persons should be able to change their civil documents to match their inner gender identity
+country_with_most_no <- opinions_by_country %>%
+  filter(No > 0) %>%
+  arrange(desc(No)) %>%
+  head(5)
+country_with_most_no
+```
+```{r}
+#Top 5 of countries that do not think that transgender persons should be able to change their civil documents to match their inner gender identity
+country_with_most_DK <- opinions_by_country %>%
+  filter(DK > 0) %>%
+  arrange(desc(DK)) %>%
+  head(5)
+country_with_most_DK
+```
+
