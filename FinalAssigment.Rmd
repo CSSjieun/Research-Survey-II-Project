@@ -77,7 +77,7 @@ Disc <- Disc |> mutate(country = case_when(
   TRUE ~ NA_character_))
 
 view(Disc)
-
+unique(Disc$country)
 ```
 Convert numeric answers from qc19 to character answers
 
@@ -141,3 +141,42 @@ country_with_most_DK <- opinions_by_country %>%
 country_with_most_DK
 ```
 
+Rename Age column 
+```{r}
+Disc <- Disc |> 
+  rename(age = d11)
+view(Disc)
+```
+
+Life satisfaction
+```{r}
+Disc <- Disc %>% mutate(Life_satisfaction = case_when(
+  d70 == 1 ~ "Very satisfied",
+  d70 == 2 ~ "Fairly satisfied", 
+  d70 == 3 ~ "Not very satisfied",
+  d70 == 3 ~ "Not at all satisfied",
+  d70 == 3 ~ "DK",
+  TRUE ~ NA_character_)) 
+```
+ADD GDP PER COUNTRY AND GDP PER CAPITA PER COUNTRY 
+
+```{r}
+#dataset from World Bank 
+library(readr)
+GDP <- read_csv("Data/GDP.csv")
+View(GDP)
+```
+
+Tidy the data 
+```{r}
+GDP <- GDP |> rename(Country =`Country Name`,Indicator = `Series Name`, value = `2019 [YR2019]`) 
+
+GDP$value <- as.numeric(GDP$value)
+
+GDP |> na.omit(GDP) |> 
+  pivot_wider(names_from = Indicator, values_from =  value)
+
+```
+
+
+ˆ
