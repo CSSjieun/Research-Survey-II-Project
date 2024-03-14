@@ -79,6 +79,7 @@ Disc <- Disc |> mutate(country = case_when(
 view(Disc)
 
 ```
+
 Convert numeric answers from qc19 to character answers
 
 ```{r}
@@ -89,7 +90,7 @@ Disc <- Disc %>% mutate(change_docs = case_when(
   TRUE ~ NA_character_)) 
 ```
 
-
+### Measuring supprotiveness for LGBTI communities in different countries
 Count the qc19 answers by country 
 
 ```{r}
@@ -140,4 +141,32 @@ country_with_most_DK <- opinions_by_country %>%
   head(5)
 country_with_most_DK
 ```
+
+# Challenges
+## 1. Cross-country differences in supporting levels:
+
+```{r}
+
+```
+
+
+## 2. Predictivd model for other countries:
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
