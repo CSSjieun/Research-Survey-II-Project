@@ -133,6 +133,7 @@ country_with_most_no <- opinions_by_country %>%
   head(5)
 country_with_most_no
 ```
+
 ```{r}
 #Top 5 of countries that do not think that transgender persons should be able to change their civil documents to match their inner gender identity
 country_with_most_DK <- opinions_by_country %>%
@@ -142,12 +143,80 @@ country_with_most_DK <- opinions_by_country %>%
 country_with_most_DK
 ```
 
+Life satisfaction 
+```{r}
+
+Disc <- Disc %>% mutate(Life_satisf = case_when(
+  d70 == 1 ~ "Very satisfied",
+  d70 == 2 ~ "Fairly satisfied", 
+  d70 == 3 ~ "Not very satisfied",
+  d70== 4 ~ "Not at all satisfied",
+  d70== 5 ~ "DK",
+  TRUE ~ NA_character_)) 
+```
+
+```{r}
+#Life satisfaction by country sum counts 
+ls_by_country <- Disc %>%
+  group_by(country, Life_satisf) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = Life_satisf, values_from = count, values_fill = 0)
+
+ls_by_country
+
+```
+
+```{r}
+#percentage counts 
+Disc %>%
+  group_by(country, Life_satisf) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  group_by(country) %>%
+  mutate(total_count = sum(count)) %>%
+  mutate(percentage = (count / total_count) * 100) %>%
+  select(country, Life_satisf, percentage) %>%
+  pivot_wider(names_from = Life_satisf, values_from = percentage, values_fill = 0)
+
+```
+
 # Challenges
 ## 1. Cross-country differences in supporting levels:
 
+ADD GDP PER COUNTRY AND GDP PER CAPITA PER COUNTRY 
+
 ```{r}
+#dataset from World Bank 
+library(readr)
+GDP <- read_csv("Data/GDP.csv")
+View(GDP)
+```
+
+Tidy the data 
+```{r}
+GDP <- GDP |> na.omit() |>  #remove rows with empty spaces 
+  rename(Country =`Country Name`,Indicator = `Series Name`, value = `2019 [YR2019]`) 
+
+
+GDP$value <- as.numeric(GDP$value)
+
+GDP1 <- GDP |> 
+  pivot_wider(names_from = "Indicator", values_from =  "value") |> 
+  pivot_wider(names_from = `Series Code`, values_from = `GDP per capita (current US$)`: `GDP (current US$)`)|> 
+  rename(GDP_per_capita = `GDP per capita (current US$)_NY.GDP.PCAP.CD`, GDP = `GDP (current US$)_NY.GDP.MKTP.CD`) |> 
+  select(Country,`Country Code`,GDP_per_capita, GDP)
 
 ```
+
+Joining GDP per capita and total GDP to the main dataset. 
+
+```{r}
+Disc2 <- left_join(Disc, GDP1, by = c("country" = "Country")) 
+
+# select(GDP, GDP_per_capita, country)
+
+```
+
 
 
 ## 2. Predictivd model for other countries:
