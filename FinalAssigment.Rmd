@@ -246,12 +246,32 @@ RAINBOW DATASET
 
 The following dataset is from the "Rainbow index 2019" of ILGA-EUROPE’S annual benchmarking tool, this index ranks 49 European countries by their LGBTI equality laws and policies, taking into account those policies safeguarding equality and human rights of LGBTI poeple (https://www.ilga-europe.org/report/rainbow-europe-2019/). 
 
+1 - national/federal application 
+2 - applicable is some regions only 
+3 - No applications 
+
+
+Each country has a score based on the presence or absence of these laws and policies, as well as the comprehensiveness and effectiveness of such measures,the total score at the end of the dataset reflects the overall level of LGBTQI+ equality in each country ( the higher score the better LGBTQI+ equality within the country). 
+
 
 ```{r}
 library(readxl)
 rainbow_2019 <- read_excel("Data/rainbow-2019.xlsx")
 View(rainbow_2019)
+```
 
+```{r}
+#Top 5 countries with the highest score of LGBTQI+ equality
+rainbow_2019 |> 
+  arrange(desc(`Score`)) |> 
+  head(5)
+```
+
+```{r}
+#Top 5 countries with the lowest score of LGBTQI+ equality
+rainbow_2019 |> 
+  arrange(`Score`) |> 
+  head(5)
 ```
 
 
