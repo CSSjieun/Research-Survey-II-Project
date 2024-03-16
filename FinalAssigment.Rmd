@@ -226,6 +226,18 @@ table(religion$year)
 
 religion <- religion |> filter(year == 2010)
 head(religion)
+
+religion <- religion |> select(name, chrstgen, judgen, islmgen, budgen, pop)
+options(scipen = 999)
+
+religion <- religion |> mutate(percentage_chrst = round(chrstgen/pop*100, 1),
+                               percentage_judaism = round(judgen/pop*100, 1),
+                               percentage_islam = round(islmgen/pop*100, 1),
+                               percentage_buddhism = round(budgen/pop*100, 1))  
+
+religion_pct <- religion |> select(name, percentage_chrst, percentage_judaism, percentage_islam, percentage_buddhism, pop)
+head(religion_pct)
+
 ```
 
 
