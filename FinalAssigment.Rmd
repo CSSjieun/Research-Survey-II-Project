@@ -217,6 +217,16 @@ Disc2 <- left_join(Disc, GDP1, by = c("country" = "Country"))
 
 ```
 
+# Religious data
+
+```{r}
+library(dplyr)
+religion <- read.csv("./Data/WRP_national.csv")
+table(religion$year)
+
+religion <- religion |> filter(year == 2010)
+head(religion)
+```
 
 
 ## 2. Predictivd model for other countries:
