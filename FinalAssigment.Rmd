@@ -227,6 +227,8 @@ table(religion$year)
 religion <- religion |> filter(year == 2010)
 head(religion)
 
+colnames(religion)
+
 religion <- religion |> select(name, chrstgen, judgen, islmgen, budgen, pop)
 options(scipen = 999)
 
@@ -240,24 +242,20 @@ head(religion_pct)
 
 ```
 
+RAINBOW DATASET
 
-## 2. Predictivd model for other countries:
+The following dataset is from the "Rainbow index 2019" of ILGA-EUROPE’S annual benchmarking tool, this index ranks 49 European countries by their LGBTI equality laws and policies, taking into account those policies safeguarding equality and human rights of LGBTI poeple (https://www.ilga-europe.org/report/rainbow-europe-2019/). 
+
 
 ```{r}
+library(readxl)
+rainbow_2019 <- read_excel("Data/rainbow-2019.xlsx")
+View(rainbow_2019)
 
 ```
 
 
-
-
-
-
-
-
-
-
-
-
+## 2. Predictivd model for other countries:
 
 
 
