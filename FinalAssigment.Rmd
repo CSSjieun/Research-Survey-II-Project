@@ -217,17 +217,11 @@ GDP1 <- GDP |>
   rename(GDP_per_capita = `GDP per capita (current US$)_NY.GDP.PCAP.CD`, GDP = `GDP (current US$)_NY.GDP.MKTP.CD`) |>
   select(Country,`Country Code`,GDP_per_capita, GDP)
 
-GDP1
-```
-
-Joining GDP per capita and total GDP to the main dataset. 
-
-```{r}
-Disc2 <- left_join(Disc, GDP1, by = c("country" = "Country")) 
-Disc2
-# select(GDP, GDP_per_capita, country)
+options(scipen = 999)
+GDP1[26,1] <- "Slovakia"
 
 ```
+
 
 # Religious data
 
@@ -267,6 +261,16 @@ survey2[6,1] <- "Czechia"
 survey2
 ```
 
+Joining GDP per capita and total GDP to the main dataset. 
+
+```{r}
+# select(GDP, GDP_per_capita, country)
+survey2 <- left_join(survey2, GDP1, by = c("country" = "Country")) 
+survey2 <- survey2 |> select(!"Country Code")
+survey2
+```
+
+
 RAINBOW DATASET
 
 The following dataset is from the "Rainbow index 2019" of ILGA-EUROPE’S annual benchmarking tool, this index ranks 49 European countries by their LGBTI equality laws and policies, taking into account those policies safeguarding equality and human rights of LGBTI poeple (https://www.ilga-europe.org/report/rainbow-europe-2019/). 
@@ -304,7 +308,7 @@ rainbow_2019 |>
 ```
 ```{r}
 survey2 <- left_join(survey2, rainbow_2019)
-
+survey2
 ```
 
 
@@ -316,33 +320,76 @@ survey2 <- left_join(survey2, rainbow_2019)
 
 
 ## 2. Predictivd model for other countries:
-### Random Forest
+### 1. Decision Tree
 
 ```{r}
 # mean satisfy score is 82.6942 so if sum of satisfaction do not reach that point, we regard it not satisfaction
 sum((survey2$Fairly_satisfied+survey2$Very_satisfied))/28
 
 survey2_classi <- survey2 |> mutate(satisfy = 
-                               ifelse(Fairly_satisfied+Very_satisfied<82.6942, 0, 1))
+                               ifelse(Fairly_satisfied+Very_satisfied<82.6942, 0, 1), .before=all_religion)
+survey2_classi <- survey2_classi |> select(-DK, -Fairly_satisfied, -Not_at_all_satisfied, -Not_very_satisfied, -Very_satisfied)
 
-
+survey2_classi <- survey2_classi |> mutate(satisfy_label = ifelse(satisfy == 1, "YES", "NO"), .after="satisfy")
+survey2_classi$satisfy = NULL
+survey2_classi$country <- factor(survey2_classi$country)
+survey2_classi$satisfy_label <- factor(survey2_classi$satisfy_label)
+levels(survey2_classi$satisfy_label) <- c("No", "Yes")
+survey2_classi
 ```
 
+### Splitting data
 
 ```{r}
 library(caret)
 
 set.seed(123)
-in_train <- createDataPartition(survey$, p = 0.8, list = FALSE)  # 70% for training
-training <- math[in_train,]
-testing <- math[-in_train,]
+in_train <- createDataPartition(survey2_classi$satisfy_label, p = 0.8, list = FALSE)  # 70% for training
+training <- survey2_classi[in_train,]
+testing <- survey2_classi[-in_train,]
 nrow(training)
 nrow(testing)
-length(math$Fail)
-
-
-
-
+length(survey2_classi$satisfy_label)
 ```
 
+### fold validation
+
+```{r}
+library(rpart)
+
+control = rpart.control(minsplit = 30, maxdepth = 10, cp=0.01)
+```
+
+```{r}
+model = satisfy_label ~.
+dtFit <- rpart(model, data=training, method = "class", control = control)
+summary(dtFit)
+```
+
+```{r}
+library(rpart.plot)
+rpart.plot(dtFit, digits=3)
+```
+```{r}
+control = rpart.control(minsplit = 8, maxdepth = 12, cp=0.001)
+dtFit <- rpart(model, data=training, method = "class", control = control)
+
+rpart.plot(dtFit, digits = 3)
+```
+
+```{r}
+dtPred <- predict(dtFit, testing, type = "class")
+
+dtProb <- predict(dtFit, testing, type = "prob")
+
+prediction <- as.factor(ifelse(dtProb[,2] > 0.5, "Yes", "No"))
+levels(testing$satisfy_label)
+
+confusionMatrix(prediction, testing$satisfy_label)$table
+confusionMatrix(prediction, testing$satisfy_label)$overall[1:2]
+```
+
+```{r}
+
+```
 
