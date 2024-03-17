@@ -75,9 +75,6 @@ Disc <- Disc |> mutate(country = case_when(
   isocntry== "SI" ~ "Slovenia",
   isocntry== "HR" ~ "Croatia",
   TRUE ~ NA_character_))
-
-view(Disc)
-
 ```
 
 Convert numeric answers from qc19 to character answers
@@ -191,6 +188,7 @@ survey <- rbind(survey, survey_germany)
 survey <- survey |> filter(country != "Germany (specifically the state of Berlin)") |> 
   filter(country != "Germany (specifically the state of North Rhine-Westphalia)")
 
+survey
 ```
 
 # Challenges
@@ -202,7 +200,7 @@ ADD GDP PER COUNTRY AND GDP PER CAPITA PER COUNTRY
 #dataset from World Bank 
 library(readr)
 GDP <- read_csv("Data/GDP.csv")
-View(GDP)
+
 ```
 
 Tidy the data 
@@ -216,16 +214,17 @@ GDP$value <- as.numeric(GDP$value)
 GDP1 <- GDP |> 
   pivot_wider(names_from = "Indicator", values_from =  "value") |> 
   pivot_wider(names_from = `Series Code`, values_from = `GDP per capita (current US$)`: `GDP (current US$)`)|> 
-  rename(GDP_per_capita = `GDP per capita (current US$)_NY.GDP.PCAP.CD`, GDP = `GDP (current US$)_NY.GDP.MKTP.CD`) |> 
+  rename(GDP_per_capita = `GDP per capita (current US$)_NY.GDP.PCAP.CD`, GDP = `GDP (current US$)_NY.GDP.MKTP.CD`) |>
   select(Country,`Country Code`,GDP_per_capita, GDP)
 
+GDP1
 ```
 
 Joining GDP per capita and total GDP to the main dataset. 
 
 ```{r}
 Disc2 <- left_join(Disc, GDP1, by = c("country" = "Country")) 
-
+Disc2
 # select(GDP, GDP_per_capita, country)
 
 ```
@@ -237,8 +236,6 @@ install.packages("xlsx")
 library(tidyr)
 library(dplyr)
 library(xlsx)
-dataset = read_sav("./Data/Pew Research Global Attitudes Spring 2018 Dataset WEB FINAL.sav")
-head(dataset)
 
 religion <- readxl::read_excel("./Data/Religious_Composition_by_Country_2010-2050.xlsx")
 head(religion)
@@ -248,6 +245,8 @@ unique(religion$Year)
 religion <- religion |> filter(Year == 2020)
 religion <- religion |> filter(Region == "Europe")
 religion <- religion |> select(Country, "All Religions")
+
+religion
 
 populaiton <- read.csv("./Data/API_SP.POP.TOTL_DS2_en_csv_v2_85.csv", skip = 4, header = TRUE)
 populaiton <- populaiton |> select("Country.Name", X2020)
@@ -264,6 +263,7 @@ survey2$"All Religions" <- as.numeric(gsub(",", "", survey2$"All Religions"))
 
 survey2 <- as.data.frame(survey2)
 survey2 <- survey2 |> rename("all_religion" = "All Religions")
+survey2[6,1] <- "Czechia" 
 survey2
 ```
 
@@ -282,8 +282,9 @@ Each country has a score based on the presence or absence of these laws and poli
 ```{r}
 library(readxl)
 rainbow_2019 <- read_excel("Data/rainbow-2019.xlsx")
+head(rainbow_2019)
+rainbow_2019 <- rainbow_2019 |> rename("country" = "Country")
 
-View(rainbow_2019)
 ```
 
 # Rainbow
@@ -301,11 +302,46 @@ rainbow_2019 |>
   arrange(`Score`) |> 
   head(5)
 ```
+```{r}
+survey2 <- left_join(survey2, rainbow_2019)
+
+```
+
+
+# Linear Regression
+
+```{r}
+
+```
 
 
 ## 2. Predictivd model for other countries:
+### Random Forest
 
 ```{r}
+# mean satisfy score is 82.6942 so if sum of satisfaction do not reach that point, we regard it not satisfaction
+sum((survey2$Fairly_satisfied+survey2$Very_satisfied))/28
+
+survey2_classi <- survey2 |> mutate(satisfy = 
+                               ifelse(Fairly_satisfied+Very_satisfied<82.6942, 0, 1))
+
+
+```
+
+
+```{r}
+library(caret)
+
+set.seed(123)
+in_train <- createDataPartition(survey$, p = 0.8, list = FALSE)  # 70% for training
+training <- math[in_train,]
+testing <- math[-in_train,]
+nrow(training)
+nrow(testing)
+length(math$Fail)
+
+
+
 
 ```
 
