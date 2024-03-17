@@ -144,15 +144,15 @@ country_with_most_DK
 ```
 
 Life satisfaction 
-```{r}
 
+```{r}
 Disc <- Disc %>% mutate(Life_satisf = case_when(
-  d70 == 1 ~ "Very satisfied",
-  d70 == 2 ~ "Fairly satisfied", 
-  d70 == 3 ~ "Not very satisfied",
-  d70== 4 ~ "Not at all satisfied",
+  d70 == 1 ~ "Very_satisfied",
+  d70 == 2 ~ "Fairly_satisfied", 
+  d70 == 3 ~ "Not_very_satisfied",
+  d70== 4 ~ "Not_at_all_satisfied",
   d70== 5 ~ "DK",
-  TRUE ~ NA_character_)) 
+  TRUE ~ NA_character_))  
 ```
 
 ```{r}
@@ -168,7 +168,7 @@ ls_by_country
 
 ```{r}
 #percentage counts 
-Disc %>%
+survey <- Disc %>%
   group_by(country, Life_satisf) %>%
   summarise(count = n()) %>%
   ungroup() %>%
@@ -177,6 +177,19 @@ Disc %>%
   mutate(percentage = (count / total_count) * 100) %>%
   select(country, Life_satisf, percentage) %>%
   pivot_wider(names_from = Life_satisf, values_from = percentage, values_fill = 0)
+
+survey_germany <- data.frame(
+  country = "Germany",
+  DK = (0.36697248)/2, 
+  "Fairly_satisfied" = (60.91743+55.04032)/2,
+  "Not_at_all_satisfied" = (3.3027523+1.0080645)/2,
+  "Not_very_satisfied" = (12.660550+6.451613)/2,
+  "Very_satisfied" = (22.752294+37.500000)/2
+ )
+
+survey <- rbind(survey, survey_germany)
+survey <- survey |> filter(country != "Germany (specifically the state of Berlin)") |> 
+  filter(country != "Germany (specifically the state of North Rhine-Westphalia)")
 
 ```
 
@@ -220,26 +233,38 @@ Disc2 <- left_join(Disc, GDP1, by = c("country" = "Country"))
 # Religious data
 
 ```{r}
+install.packages("xlsx")
+library(tidyr)
 library(dplyr)
-religion <- read.csv("./Data/WRP_national.csv")
-table(religion$year)
+library(xlsx)
+dataset = read_sav("./Data/Pew Research Global Attitudes Spring 2018 Dataset WEB FINAL.sav")
+head(dataset)
 
-religion <- religion |> filter(year == 2010)
+religion <- readxl::read_excel("./Data/Religious_Composition_by_Country_2010-2050.xlsx")
 head(religion)
 
-colnames(religion)
+unique(religion$Year)
 
-religion <- religion |> select(name, chrstgen, judgen, islmgen, budgen, pop)
-options(scipen = 999)
+religion <- religion |> filter(Year == 2020)
+religion <- religion |> filter(Region == "Europe")
+religion <- religion |> select(Country, "All Religions")
 
-religion <- religion |> mutate(percentage_chrst = round(chrstgen/pop*100, 1),
-                               percentage_judaism = round(judgen/pop*100, 1),
-                               percentage_islam = round(islmgen/pop*100, 1),
-                               percentage_buddhism = round(budgen/pop*100, 1))  
+populaiton <- read.csv("./Data/API_SP.POP.TOTL_DS2_en_csv_v2_85.csv", skip = 4, header = TRUE)
+populaiton <- populaiton |> select("Country.Name", X2020)
+populaiton <- populaiton |> rename("Country" = "Country.Name")
+populaiton <- populaiton |> rename("populaiton" = "X2020")
 
-religion_pct <- religion |> select(name, percentage_chrst, percentage_judaism, percentage_islam, percentage_buddhism, pop)
-head(religion_pct)
+religion <- religion |> rename("country" = "Country")
 
+survey2 <- survey |> left_join(religion)
+
+survey2[5, 7] <- "1,041,228"
+
+survey2$"All Religions" <- as.numeric(gsub(",", "", survey2$"All Religions"))
+
+survey2 <- as.data.frame(survey2)
+survey2 <- survey2 |> rename("all_religion" = "All Religions")
+survey2
 ```
 
 RAINBOW DATASET
@@ -257,8 +282,11 @@ Each country has a score based on the presence or absence of these laws and poli
 ```{r}
 library(readxl)
 rainbow_2019 <- read_excel("Data/rainbow-2019.xlsx")
+
 View(rainbow_2019)
 ```
+
+# Rainbow
 
 ```{r}
 #Top 5 countries with the highest score of LGBTQI+ equality
@@ -277,5 +305,8 @@ rainbow_2019 |>
 
 ## 2. Predictivd model for other countries:
 
+```{r}
+
+```
 
 
