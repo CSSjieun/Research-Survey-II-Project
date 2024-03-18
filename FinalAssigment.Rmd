@@ -23,7 +23,10 @@ text-align: justify}
 knitr::opts_chunk$set(echo=T, message=FALSE, warning=FALSE, knitr.purl.inline = TRUE )
 ```
 
+
 ```{r}
+# LOADING REQUIRED LIBRARIES
+
 library(tidyverse)
 library(dplyr)
 library(forcats)
@@ -31,7 +34,13 @@ library(gmodels)
 library(haven)
 ```
 
-###Read data 
+## COLLECT DATA AND DATA WRANGLING
+
+We load the original given dataset from the Special Eurobarometer 493: Discrimination
+in the EU. This survey includes responses regarding societal attitudes
+and legal challenges among 27438 respondents across 28 countries between 09-
+21/05/2019.
+
 ```{r}
 Disc <- read_dta("Data/ZA7575.dta")
 head(Disc)
