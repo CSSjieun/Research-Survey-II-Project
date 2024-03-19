@@ -80,7 +80,7 @@ Disc <- read_dta("Data/ZA7575.dta")
 head(Disc$qc19)
 
 Disc_clean <- Disc %>% 
-  select(isocntry,country, d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70)
+  select(isocntry,country, d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70,d15a_r1)
 
 unique(Disc$isocntry)
 ```
@@ -473,6 +473,47 @@ survey2 |> left_join(unemployment_cntry)
 ```
 
 ### 12. Political Regimes (Independent variable)
+
+```{r}
+library(readr)
+political_regime <- read_csv("Data/political-regime (1).csv")
+View(political_regime_1_)
+```
+
+```{r}
+library(dplyr)
+
+political_regime1 <- political_regime %>%
+  filter(Year == "2019" & 
+         Entity %in% c("Belgium", "Denmark", "Greece", "Spain", "Finland", "France", 
+                       "Ireland", "Italy", "Luxembourg", "Netherlands", "Austria", 
+                       "Portugal", "Sweden", "Germany", "United Kingdom", "Bulgaria", 
+                       "Cyprus", "Czechia", "Estonia", "Hungary", "Latvia", 
+                       "Lithuania", "Malta", "Poland", "Romania", "Slovakia", 
+                       "Slovenia", "Croatia"))
+
+```
+
+```{r}
+political_regime1 <- political_regime1 %>% 
+  mutate(pol_regimen = case_when(
+    `Political regime` == 1 ~ "electoral autocracies",
+    `Political regime` == 2 ~ "electoral democracies", 
+    `Political regime` == 3 ~ "liberal democracies",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(pol_regimen = factor(pol_regimen,
+                              levels = c("electoral autocracies", "electoral democracies", "liberal democracies")))
+
+political_regime1 %>%
+  select(Entity, `Political regime`, pol_regimen)
+```
+
+## Merging survey2 and political_regime1
+
+```{r}
+survey2 <- left_join(survey2, political_regime1, by = c("country" = "Entity")) 
+```
 
 ### 1. Encoding **dependent** variable: qc19
 
