@@ -34,26 +34,63 @@ library(gmodels)
 library(haven)
 ```
 
-## COLLECT DATA AND DATA WRANGLING
+## DATA COLLECTION AND WRANGLING
 
 We load the original given dataset from the Special Eurobarometer 493: Discrimination
 in the EU. This survey includes responses regarding societal attitudes
 and legal challenges among 27438 respondents across 28 countries between 09-
 21/05/2019.
 
+Based on previous literature on this topic (check the narrative doc for more information),
+we select and initial set of independent variables that, together with the dependent 
+variable q19 ("Do you think that transgender persons should be able to change their 
+civil documents to match their inner gender identity?"), will form the individual level
+factors. These independent variables are:
+
+  - Generic individual aspects:
+    - ORIGIN: country and isocntry
+    - GENDER: d10 (then: male)
+    - AGE: d11 (then: age_cat)
+    - **EDUCATION: (d8r1) ??????????????????????????**
+    - RELIGION: sd3 (then: religion and religion_group)
+    - GENERAL POLITICAL ATTITUDES:
+    - POLITICAL STANCE: d1r1 (then: left_right)
+    
+  - LGTBI related aspects at individual level:
+    - CONTACT: 
+      - sd1_4 (gay lesbian or bisexual)
+      - sd1_7 (transgender/transexual)
+      - sd1_8 (intersext)
+    - DISCRIMINATION PERCEIVED (LGTBI): qc1 (then: discrimination)
+    - ATTITUDES TOWARDS THE LGTBI COMMUNITY:
+    - EXPERIENCES OF DISCRIMINATION (LGTBI):
+    - LAWS & POLICIES:
+    
+
+  -
+
 ```{r}
 Disc <- read_dta("Data/ZA7575.dta")
 head(Disc)
 
-Disc |> select(isocntry,country,qc19)
+Disc_clean <- Disc %>% 
+  select(isocntry,country, d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20)
+
 unique(Disc$isocntry)
 
 ```
+### Encoding: the individual perspective
 
+Now, we need to factorize the values of the independent variables and recode the "refusal"
+and "DK" answers as NAs.
+
+#### Country
+
+Encoding the country name:
 
 ```{r}
 #Put the complete name of the countries. 
-Disc <- Disc |> mutate(country = case_when(
+Disc_clean <- Disc |> mutate(country = case_when(
   isocntry== "BE" ~ "Belgium",
   isocntry== "DK" ~ "Denmark",
   isocntry== "GR" ~ "Greece",
@@ -86,6 +123,200 @@ Disc <- Disc |> mutate(country = case_when(
   TRUE ~ NA_character_))
 ```
 
+#### Gender
+
+Encoding gender:
+
+```{r}
+# Encoding gender (Original-> 1: Man 2: Woman)
+
+Disc_clean <- Disc_clean %>%
+  mutate(male = car::recode(d10, "2=0"),
+    male = factor(male, levels = c(0, 1), labels = c("female", "male")))
+
+# Distribution of gender surveyed per country
+table(Disc_clean$country, Disc_clean$male)
+```
+
+#### Age
+
+Encoding age:
+
+```{r}
+# Encoding age (Original-> number, 99: refusal)
+Disc_clean <- Disc_clean |>
+  mutate(
+    d11 = replace(d11, d11 > 98, NA) # 999 and other values above 
+  )
+
+Disc_clean <- Disc_clean |>
+  mutate(
+    age_cat = cut(d11, breaks = c(0, 19, 29, 44, 64, 98),
+                  labels = c("<20", "20-29", "30-44", "45-64", ">=65"))
+  )
+
+# Distribution of age categories by country
+
+with(Disc_clean, table(country, age_cat))
+
+```
+
+#### Education
+
+The education variable per categories is the following:
+1	Up to 14 years			
+2	15 years			
+3	16 years			
+4	17 years			
+5	18 years			
+6	19 years			
+7	20 years			
+8	21 years			
+9	22 years and older			
+10	Still studying
+11	No full-time education			
+97	Refusal			
+98	DK
+
+```{r}
+
+
+```
+
+
+#### Political stance: left-center-right
+
+Encoding political stance (left-right):
+
+1	(1 - 4) Left			
+2	(5 - 6) Centre			
+3	(7 -10) Right			
+9	DK/Refusal
+
+```{r}
+Disc_clean <- Disc_clean |>
+  mutate(
+    left_right = car::recode(d1r1, "9=NA"),
+    left_right = factor(left_right, labels = c("Left", "Center", "Right"))
+  )
+
+
+# Distribution of political stance categories by country
+
+with(Disc_clean, table(country, left_right))
+```
+#### Religion
+
+Encoding religion variable. Original:
+1	Catholic			
+2	Orthodox Christian			
+3	Protestant			
+4	Other Christian			
+5	Jewish			
+6	Muslim - Shia			
+7	Muslim - Sunni			
+8	Other Muslim			
+9	Sikh			
+10	Buddhist
+11	Hindu			
+12	Atheist			
+13	Non believer or agnostic			
+14	Other			
+15	Refusal (SPONTANEOUS)			
+16	DK
+
+```{r}
+# Encoding religions (Original-> 1-14: Religions; 15: Refusal; 16: )
+
+Disc_clean <- Disc_clean %>% 
+  mutate(
+    religion = car::recode(sd3, "15=NA; 16=NA"),
+    religion = factor(religion, levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+                      labels= c("Catholic", "Orthodox Christian", "Protestant",
+                                "Other Christian", "Jewish","Muslim - Shia",
+                                "Muslim - Sunni","Other Muslim", "Sikh", "Buddhist",
+                                "Hindu", "Atheist","Agnostic","Other")))
+
+
+```
+
+We also create another factor variable to capture in general terms if the person is religious or not:
+
+```{r}
+# Recoding religion valiable in the following groups: Religious: 1, Atheist: 2, Agnostic: 3, Other: 4)
+Disc_clean <- Disc_clean |>
+  mutate(
+    religion_group = case_when(
+      sd3 %in% c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11) ~ "1",
+      sd3 %in% c(12) ~ "2",
+      sd3 %in% c(13) ~ "3",
+      sd3 %in% c(14) ~ "4",
+      TRUE ~ NA_character_
+    )
+  ) |>
+  mutate(
+    religion_group = fct_recode(religion_group,
+                            "Religious" = "1",
+                            "Atheist" = "2",
+                            "Agnostic" = "3",
+                            "Other" = "4")
+  )
+
+with(Disc_clean, table(country, religion_group))
+```
+"Buddhist" = "10",
+                            "Hindu" = "11",
+                            "Atheist" = "12",
+                            "Agnostic" = "13",
+                            "Other" = "14"))
+
+
+#### Discrimination_perceived
+
+Encoding religion
+
+#### Discrimination experienced
+
+Encoding religion
+
+#### Contact with LGBT community
+
+Original question: "Do you have friends or acquaintances who are…?" Variables:
+sd1_4 CONTACT: gay lesbian or bisexual
+sd1_7 CONTACT: transgender/transexual
+sd1_8 CONTACT: intersext
+
+```{r}
+# Contact: gay, lesbian, bisexual
+
+Disc_clean <- Disc_clean %>% 
+  mutate(contact_gay = car::recode(sd1_4, "2=0; 3=NA; 4=NA"),
+         contact_gay = factor(contact_gay, levels = c(0, 1), labels= c("No", "Yes"))
+  )
+
+# Contact: transgender, transexual
+
+Disc_clean <- Disc_clean %>% 
+  mutate(contact_trans = car::recode(sd1_7, "2=0; 3=NA; 4=NA"),
+         contact_trans = factor(contact_trans, levels = c(0, 1), labels= c("No", "Yes"))
+  )
+ 
+Disc_clean <- Disc_clean %>% 
+  mutate(contact_inter = car::recode(sd1_8, "2=0; 3=NA; 4=NA"),
+         contact_inter = factor(contact_inter, levels = c(0, 1), labels= c("No", "Yes"))
+  )
+
+
+
+sd1_7
+
+sd1_8
+with(Disc_clean, table(country, ...))
+```
+
+
+#### Encoding dependent variable: qc19
+
 Convert numeric answers from qc19 to character answers
 
 ```{r}
@@ -94,9 +325,13 @@ Disc <- Disc %>% mutate(change_docs = case_when(
   qc19 == 2 ~ "No", 
   qc19 == 3 ~ "DK", 
   TRUE ~ NA_character_)) 
+
+# Need for factorize
 ```
 
+
 ### Measuring supprotiveness for LGBTI communities in different countries
+
 Count the qc19 answers by country 
 
 ```{r}
@@ -199,36 +434,9 @@ survey <- survey |> filter(country != "Germany (specifically the state of Berlin
 survey
 ```
 
-## Target Variable
-
-```{r}
-qc19 <- opinions_by_country 
-
-Germany <- tibble(country = c("Germany"),
-                  DK = c((88+116)/2),
-                  No = c((107+172)/2),
-                  Yes = c((350+704)/2))
-
-qc19 <- rbind(qc19, Germany)
-qc19 <- qc19 |> filter(country != "Germany (specifically the state of Berlin)" &  
-                       country != "Germany (specifically the state of North Rhine-Westphalia)")
-
-qc19 <- qc19 |> rename("Don't_Know" = "DK")
-print(qc19)
-  
-```
-
-## Merge target variable and satisfaction variables
-
-```{r}
-survey <- left_join(qc19, survey, by = "country")
-```
 
 
-# Challenges
-## 1. Cross-country differences in supporting levels:
-
-ADD GDP PER COUNTRY AND GDP PER CAPITA PER COUNTRY 
+#### GDP per capita 
 
 ```{r}
 #dataset from World Bank 
@@ -258,7 +466,9 @@ GDP1
 ```
 
 
-# Religious data
+
+
+#### Religious data
 
 ```{r}
 install.packages("xlsx")
@@ -322,7 +532,7 @@ rainbow_2019 <- rainbow_2019 |> rename("country" = "Country")
 
 ```
 
-# Rainbow
+
 
 ```{r}
 #Top 5 countries with the highest score of LGBTQI+ equality
@@ -346,6 +556,8 @@ print(survey2)
 ```
 
 
+### Missing data imputation
+
 # Linear Regression
 
 ```{r}
@@ -353,8 +565,15 @@ lm(survey2 ~ )
 ```
 
 
-## 2. Predictivd model for other countries:
-### 1. Decision Tree
+## GOALS
+
+### 1. Cross-country differences in supporting levels:
+
+
+
+
+### 2. Predictivd model for other countries:
+#### 1. Decision Tree
 
 ```{r}
 # mean satisfy score is 82.6942 so if sum of satisfaction do not reach that point, we regard it not satisfaction
@@ -425,3 +644,6 @@ confusionMatrix(prediction, testing$satisfy_label)$overall[1:2]
 
 ```
 
+## Challenges:
+
+In the encoding process, some variables like education () were difficult to encode as we were interested in the level of education, not the age when the participant stopped full-time studies (which does not imply neccesarily the level of studies acquired). A correlation with the ISCED levels could be possible but not rigorous (e.g. older people obtaining their highschool diploma).
