@@ -263,6 +263,7 @@ Disc_clean <- Disc_clean |>
   )
 
 with(Disc_clean, table(country, religion_group))
+
 ```
 "Buddhist" = "10",
                             "Hindu" = "11",
@@ -312,6 +313,25 @@ sd1_7
 
 sd1_8
 with(Disc_clean, table(country, ...))
+```
+
+####Unemployement (individual level)
+
+```{r}
+Disc_clean <- Disc_clean %>% 
+  mutate(unemployed = case_when(
+    d15a_r1 == 1 ~ "No",
+    d15a_r1 == 2 ~ "No", 
+    d15a_r1 == 3 ~ "Yes",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(
+    unemployed = fct_recode(unemployed,
+                            "No" = "No",
+                            "Yes" = "Yes"))
+
+with(Disc_clean, table(country, unemployed))
+unique(Disc_clean$unemployed)
 ```
 
 
