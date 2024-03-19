@@ -404,7 +404,6 @@ ls_by_country <- Disc %>%
   pivot_wider(names_from = Life_satisf, values_from = count, values_fill = 0)
 
 ls_by_country
-
 ```
 
 ```{r}
@@ -435,7 +434,7 @@ survey <- survey |> filter(country != "Germany (specifically the state of Berlin
 survey
 ```
 
-### Encoding: the national perspective
+
 
 #### GDP per capita 
 
@@ -463,6 +462,7 @@ GDP1 <- GDP |>
 options(scipen = 999)
 GDP1[26,1] <- "Slovakia"
 
+GDP1
 ```
 
 
@@ -485,25 +485,20 @@ religion <- religion |> filter(Year == 2020)
 religion <- religion |> filter(Region == "Europe")
 religion <- religion |> select(Country, "All Religions")
 
-religion
-
-populaiton <- read.csv("./Data/API_SP.POP.TOTL_DS2_en_csv_v2_85.csv", skip = 4, header = TRUE)
-populaiton <- populaiton |> select("Country.Name", X2020)
-populaiton <- populaiton |> rename("Country" = "Country.Name")
-populaiton <- populaiton |> rename("populaiton" = "X2020")
+print(religion)
 
 religion <- religion |> rename("country" = "Country")
 
 survey2 <- survey |> left_join(religion)
 
-survey2[5, 7] <- "1,041,228"
+survey2[5,10] = "1,041,228"
 
 survey2$"All Religions" <- as.numeric(gsub(",", "", survey2$"All Religions"))
 
 survey2 <- as.data.frame(survey2)
 survey2 <- survey2 |> rename("all_religion" = "All Religions")
 survey2[6,1] <- "Czechia" 
-survey2
+print(survey2)
 ```
 
 Joining GDP per capita and total GDP to the main dataset. 
@@ -512,7 +507,8 @@ Joining GDP per capita and total GDP to the main dataset.
 # select(GDP, GDP_per_capita, country)
 survey2 <- left_join(survey2, GDP1, by = c("country" = "Country")) 
 survey2 <- survey2 |> select(!"Country Code")
-survey2
+
+print(survey2)
 ```
 
 
@@ -551,9 +547,12 @@ rainbow_2019 |>
   arrange(`Score`) |> 
   head(5)
 ```
+
+## Merging survey2 and rainbow_2019
+
 ```{r}
 survey2 <- left_join(survey2, rainbow_2019)
-survey2
+print(survey2)
 ```
 
 
@@ -562,7 +561,7 @@ survey2
 # Linear Regression
 
 ```{r}
-
+lm(survey2 ~ )
 ```
 
 
@@ -578,8 +577,6 @@ survey2
 
 ```{r}
 # mean satisfy score is 82.6942 so if sum of satisfaction do not reach that point, we regard it not satisfaction
-sum((survey2$Fairly_satisfied+survey2$Very_satisfied))/28
-
 survey2_classi <- survey2 |> mutate(satisfy = 
                                ifelse(Fairly_satisfied+Very_satisfied<82.6942, 0, 1), .before=all_religion)
 survey2_classi <- survey2_classi |> select(-DK, -Fairly_satisfied, -Not_at_all_satisfied, -Not_very_satisfied, -Very_satisfied)
