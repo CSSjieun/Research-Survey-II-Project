@@ -322,9 +322,29 @@ Disc_clean <- Disc_clean %>% mutate(Life_satisf = case_when(
   d70== 5 ~ "DK",
   TRUE ~ NA_character_))  
 ```
+
+### 7. Unemployement (Independent variable)
+
+```{r}
+Disc_clean <- Disc_clean %>% 
+  mutate(unemployed = case_when(
+    d15a_r1 == 1 ~ "No",
+    d15a_r1 == 2 ~ "No", 
+    d15a_r1 == 3 ~ "Yes",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(
+    unemployed = fct_recode(unemployed,
+                            "No" = "No",
+                            "Yes" = "Yes"))
+
+with(Disc_clean, table(country, unemployed))
+unique(Disc_clean$unemployed)
+```
+
 ### Country_level independent variables
 
-### 7. GDP per capita (Independent Variable) 
+### 8. GDP per capita (Independent Variable) 
 
 ```{r}
 #dataset from World Bank 
@@ -334,6 +354,7 @@ GDP <- read_csv("Data/GDP.csv")
 ```
 
 Tidy the data 
+
 ```{r}
 GDP <- GDP |> na.omit() |>  #remove rows with empty spaces 
   rename(Country =`Country Name`,Indicator = `Series Name`, value = `2019 [YR2019]`) 
@@ -352,7 +373,7 @@ GDP1[26,1] <- "Slovakia"
 GDP1
 ```
 
-### 8. Religious data (Independent Variable)
+### 9. Religious data (Independent Variable)
 
 ```{r}
 install.packages("xlsx")
@@ -407,7 +428,7 @@ The following dataset is from the "Rainbow index 2019" of ILGA-EUROPE’S annual
 
 Each country has a score based on the presence or absence of these laws and policies, as well as the comprehensiveness and effectiveness of such measures,the total score at the end of the dataset reflects the overall level of LGBTQI+ equality in each country ( the higher score the better LGBTQI+ equality within the country). 
 
-### 9. Rainbow (Independent variable)
+### 10. Rainbow (Independent variable)
 
 ```{r}
 library(readxl)
@@ -438,7 +459,7 @@ survey2 <- left_join(survey2, rainbow_2019)
 print(survey2)
 ```
 
-### 10. Unemployment (Independent variable)
+### 11. Unemployment (Independent variable)
 
 ```{r}
 library(dplyr)
@@ -451,7 +472,7 @@ unemployment_cnty <- unemployment_cnty |> rename("unemployement_rate" = "2019")
 survey2 |> left_join(unemployment_cntry)
 ```
 
-### 11. Political Regimes (Independent variable)
+### 12. Political Regimes (Independent variable)
 
 ### 1. Encoding **dependent** variable: qc19
 
