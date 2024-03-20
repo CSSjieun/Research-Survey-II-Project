@@ -79,7 +79,7 @@ factors. These independent variables are:
 Disc <- read_dta("ZA7575.dta")
 
 Disc_clean <- Disc %>% 
-  select(country, d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70, d15a_r1)
+  select(isocntry, country, d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70, d15a_r1)
 ```
 
 ## Encoding: the individual perspective
@@ -154,8 +154,8 @@ Disc_clean <- Disc_clean %>%
   mutate(male = car::recode(d10, "2=0"),
     male = factor(male, levels = c(0, 1), labels = c("female", "male")))
 
-Disc_clean$male <- ifelse(Disc_clean$male == "No", 0, 
-                                 ifelse(Disc_clean$male== "Yes", 1, NA))
+Disc_clean$male <- ifelse(Disc_clean$male == "female", 0, 
+                                 ifelse(Disc_clean$male== "male", 1, NA))
 
 # Distribution of gender surveyed per country
 table(Disc_clean$country, Disc_clean$male)
@@ -178,6 +178,11 @@ Disc_clean <- Disc_clean |>
                   labels = c("<20", "20-29", "30-44", "45-64", ">=65"))
   )
 
+Disc_clean$age_cat <- factor(Disc_clean$age_cat,
+                                     levels = c("<20", "20-29", "30-44", "45-64", ">=65"),
+                                     labels = c(0, 1, 2, 3, 4))
+
+
 # Distribution of age categories by country
 with(Disc_clean, table(country, age_cat))
 ```
@@ -198,6 +203,10 @@ Disc_clean <- Disc_clean |>
     left_right = car::recode(d1r1, "9=NA"),
     left_right = factor(left_right, labels = c("Left", "Center", "Right"))
   )
+
+Disc_clean$left_right <- factor(Disc_clean$left_right,
+                                     levels = c("Left", "Center", "Right"),
+                                     labels = c(0, 1, 2))
 
 
 # Distribution of political stance categories by country
@@ -236,6 +245,13 @@ Disc_clean <- Disc_clean %>%
                                 "Hindu", "Atheist","Agnostic","Other")))
 
 
+Disc_clean$religion <- factor(Disc_clean$religion,
+                                     levels = c("Catholic", "Orthodox Christian", "Protestant",
+                                "Other Christian", "Jewish","Muslim - Shia",
+                                "Muslim - Sunni","Other Muslim", "Sikh", "Buddhist",
+                                "Hindu", "Atheist","Agnostic","Other"),
+                                     labels = c(0,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13))
+
 with(Disc_clean, table(country, religion))
 ```
 
@@ -263,6 +279,10 @@ Disc_clean <- Disc_clean |>
                             "Other" = "4")
   )
 
+Disc_clean$religion_group <- factor(Disc_clean$religion_group,
+                                     levels = c("Religious", "Atheist", "Agnostic","Other"),
+                                     labels = c(0,1, 2, 3))
+
 with(Disc_clean, table(country, religion_group))
 ```
 
@@ -280,9 +300,9 @@ Disc_clean <- Disc_clean %>%
          contact_gay = factor(contact_gay, levels = c(0, 1), labels= c("No", "Yes"))
   )
 
-Disc_clean$contact_gay <- ifelse(Disc_clean$contact_gay == "No", 0, 
-                                 ifelse(Disc_clean$contact_gay== "Yes", 1, NA))
-
+Disc_clean$contact_gay <- factor(Disc_clean$contact_gay,
+                                     levels = c("No", "Yes"),
+                                     labels = c(0,1))
 
 # Contact: transgender, transexual
 Disc_clean <- Disc_clean %>% 
@@ -290,16 +310,18 @@ Disc_clean <- Disc_clean %>%
          contact_trans = factor(contact_trans, levels = c(0, 1), labels= c("No", "Yes"))
   )
 
-Disc_clean$contact_trans <- ifelse(Disc_clean$contact_trans == "No", 0, 
-                                 ifelse(Disc_clean$contact_trans== "Yes", 1, NA))
+Disc_clean$contact_trans <- factor(Disc_clean$contact_trans,
+                                     levels = c("No", "Yes"),
+                                     labels = c(0,1))
  
 Disc_clean <- Disc_clean %>% 
   mutate(contact_inter = car::recode(sd1_8, "2=0; 3=NA; 4=NA"),
          contact_inter = factor(contact_inter, levels = c(0, 1), labels= c("No", "Yes"))
   )
 
-Disc_clean$contact_inter <- ifelse(Disc_clean$contact_inter == "No", 0, 
-                                 ifelse(Disc_clean$contact_inter== "Yes", 1, NA))
+Disc_clean$contact_inter <- factor(Disc_clean$contact_inter,
+                                     levels = c("No", "Yes"),
+                                     labels = c(0,1))
 
 # sd1_4
 with(Disc_clean, table(country, contact_gay))
@@ -321,6 +343,11 @@ Disc_clean <- Disc_clean %>% mutate(Life_satisf = case_when(
   d70== 4 ~ "Not_at_all_satisfied",
   d70== 5 ~ "DK",
   TRUE ~ NA_character_))  
+
+Disc_clean$Life_satisf <- factor(Disc_clean$Life_satisf,
+                                     levels = c("Very_satisfied", "Fairly_satisfied", "Not_very_satisfied",
+                                                "Not_at_all_satisfied", "DK"),
+                                     labels = c(0,1, 2, 3, NA))
 ```
 
 ### 6. Unemployement (Independent variable)
@@ -342,7 +369,6 @@ Disc_clean$unemployed <-  ifelse(Disc_clean$unemployed == "No", 0,
                                  ifelse(Disc_clean$unemployed== "Yes", 1, NA))
 
 with(Disc_clean, table(country, unemployed))
-unique(Disc_clean$unemployed)
 ```
 
 ### Country_level independent variables
@@ -353,7 +379,7 @@ unique(Disc_clean$unemployed)
 #dataset from World Bank 
 library(readr)
 
-GDP <- read_csv("GDP.csv")
+GDP <- read_csv("./Data/GDP.csv")
 ```
 
 Tidy the data 
@@ -385,7 +411,7 @@ install.packages("xlsx")
 library(tidyr)
 library(dplyr)
 
-religion <- read_excel("Religious_Composition_by_Country_2010-2050.xlsx")
+religion <- read_excel("Data/Religious_Composition_by_Country_2010-2050.xlsx")
 head(religion)
 
 religion <- religion |> filter(Year == 2020)
@@ -420,7 +446,7 @@ Each country has a score based on the presence or absence of these laws and poli
 
 ```{r}
 library(readxl)
-rainbow_2019 <- read_excel("rainbow-2019.xlsx")
+rainbow_2019 <- read_excel("Data/rainbow-2019.xlsx")
 
 head(rainbow_2019)
 rainbow_2019 <- rainbow_2019 |> rename("country" = "Country")
@@ -437,6 +463,7 @@ rainbow_2019 <- rainbow_2019 |> rename("constitution_rb" = "Constitution (gender
 
 ```
 
+# ...!!
 
 ```{r}
 rainbow_2019 <- rainbow_2019 %>% 
@@ -491,14 +518,14 @@ rainbow_2019 <- rainbow_2019 %>%
 ```{r}
 #Top 5 countries with the highest score of LGBTQI+ equality
 rainbow_2019 |> 
-  arrange(desc(`Score`)) |> 
+  arrange(desc(`score_rb`)) |> 
   head(5)
 ```
 
 ```{r}
 #Top 5 countries with the lowest score of LGBTQI+ equality
 rainbow_2019 |> 
-  arrange(`Score`) |> 
+  arrange(`score_rb`) |> 
   head(5)
 ```
 
@@ -507,7 +534,7 @@ rainbow_2019 |>
 
 ```{r}
 library(dplyr)
-unemployment_cntry <- read.csv("./API_SL.UEM.TOTL.ZS_DS2_en_csv_v2_80.csv", skip = 4, header = TRUE)
+unemployment_cntry <- read.csv("Data/API_SL.UEM.TOTL.ZS_DS2_en_csv_v2_80.csv", skip = 4, header = TRUE)
 unemployment_cntry <- unemployment_cntry |> select("Country.Name", "X2019")
 
 unemployment_cntry <- unemployment_cntry |> rename("country" = "Country.Name")
@@ -529,11 +556,11 @@ survey <- left_join(survey, religion, by=c("country" = "country"))
 survey <- left_join(survey, rainbow_2019, by=c("country" = "country"))
 # merge unemployment
 survey <- left_join(survey, unemployment_cntry, by=c("country" = "country"))
-
 survey$change_docs <- ifelse(Disc_clean$change_docs == "Yes", 1,
                              ifelse(Disc_clean$change_docs == "No", 0, NA))
 survey <- survey |> mutate(across(c(d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19,
-                           qc20, d70, d15a_r1), as.numeric))
+                           qc20, d70, d15a_r1, age_cat, Life_satisf, left_right, religion,
+                           religion_group, contact_gay, contact_trans, contact_inter), as.numeric))
 
 print(survey)
 ```
@@ -628,23 +655,22 @@ ls_by_country_pct <- Disc_clean %>%
 ls_by_country_pct
 ```
 
+
+
 # Missing data imputation
 
 ```{r}
-sapply(survey_n_simple, function(x) sum(is.na(x))*100/nrow(survey_n_simple))
+sapply(survey, function(x) sum(is.na(x))*100/nrow(survey))
 
-# categorical variable
-survey_c = survey |> select(country, male, age_cat, left_right, religion, religion_group, Life_satisf)
-table(is.na(survey_c))
 # numerical variable
-survey_n = survey |> select(-country, -male, -age_cat, -left_right, -religion, -religion_group, -Life_satisf)
+survey_n = survey |> select(-country, -isocntry)
+
 # we separated two dataset since the scale of data in those two dataset are too different
-survey_n_simple <- survey_n |> select(constitution_rb, employment_rb, education_rb, defenders_at_risk_rb)
-survey_n_complex <- survey_n |> select(GDP_per_capita, all_religion, score_rb, unemployement_rate)
+survey_n_simple <- survey_n |> select(constitution_rb, employment_rb, education_rb, defenders_at_risk_rb, left_right,
+                                      religion, religion_group, score_rb)
 survey_n_dummy <- survey_n |> select(unemployed, contact_gay, contact_trans, contact_inter, change_docs)
 
 md.pattern(survey_n_simple)
-md.pattern(survey_n_complex)
 md.pattern(survey_n_dummy)
 
 m = 4 # number of multiple imputations, we are going to make 5 iterations, we're going to predict missing values 4 times.
@@ -655,25 +681,27 @@ survey_n_s_imputed <- complete(mice_mod_s, action=m)
 colSums(is.na(survey_n_s_imputed))
 
 # survey_n_dummy
-mice_mod_d = mice(survey_n_dummy, m = m, method='cart', seed = 123) # machine learning tool, rf = random forest
+mice_mod_d = mice(survey_n_dummy, m = m, method='cart', seed = 234) # machine learning tool, rf = random forest
 survey_n_d_imputed <- complete(mice_mod_d, action=m) 
 
 colSums(is.na(survey_n_d_imputed))
-
-# survey_n_complex
-mice_mod_c = mice(survey_n_complex, m = m, method='rf', seed = 2345) # machine learning tool, rf = random forest
-survey_n_c_imputed <- complete(mice_mod_c, action=m) 
-
-colSums(is.na(survey_n_c_imputed))
 ```
 
 ## Data frame
 
 ```{r}
-survey_n_imputed <- cbind(survey_n_s_imputed, survey_n_d_imputed, survey_n_c_imputed)
-  
+survey <- survey |> select(-unemployed, -contact_gay, -contact_trans, -contact_inter, -change_docs,
+                 -constitution_rb, -employment_rb, -education_rb, -defenders_at_risk_rb, -left_right,
+                -religion, -religion_group, -score_rb)
+survey_imputed <- cbind(survey, survey_n_s_imputed, survey_n_d_imputed)
+
+colSums(is.na(survey_imputed))
+
+# only numberical variable
+survey_n_imputed <- survey_imputed |> select(-country, -isocntry)
+
 library(corrplot)
-corrplot(cor(df_imput_n), method = "number")
+corrplot(cor(survey_n_imputed), method = "number")
 ```
 
 # GOALS
