@@ -719,15 +719,13 @@ summary(m0b)
 ### Defining Yes
 
 ```{r}
-Disc_clean$change_docs <- ifelse(Disc_clean$change_docs == "Yes", 1,
-                             ifelse(Disc_clean$change_docs == "No", 0, NA))
 
+survey_n_imputed$change_docs <- ifelse(survey_n_imputed$change_docs == "Yes", 1,
+                                        ifelse(survey_n_imputed$change_docs == "No", 0, NA))
+survey_n_imputed$change_docs <- factor(survey_n_imputed$change_docs, levels = c(0, 1),
+                                       labels = c("No", "Yes"))
 
-
-survey$agree = factor(survey$change_docs>0) # less than 5 over 20
-survey$change_docs = NULL
-
-prop.table(table(survey$agree))
+prop.table(table(survey_n_imputed$change_docs))
 ```
 
 ### Data splitting 
@@ -736,12 +734,12 @@ prop.table(table(survey$agree))
 library(caret)
 
 set.seed(123)
-in_train <- createDataPartition(survey$agree, p = 0.8, list = FALSE)  # 70% for training
-training <- survey[in_train,]
-testing <- survey[-in_train,]
+in_train <- createDataPartition(survey_n_imputed$change_docs, p = 0.8, list = FALSE)  # 80% for training
+training <- survey_n_imputed[in_train,]
+testing <- survey_n_imputed[-in_train,]
 nrow(training)
 nrow(testing)
-length(survey$agree)
+length(survey_n_imputed$change_docs)
 ```
 
 ### 10 fold validation
@@ -749,12 +747,9 @@ length(survey$agree)
 ```{r}
 ctrl <- trainControl(method = "repeatedcv", 
                      number = 10,
-                     classProbs = T,
-                     summaryFunction=twoClassSummary,
-                     verboseIter = T)
-
-levels(training$Fail)=c("No","Yes")
-levels(testing$Fail)=c("No","Yes")
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary,
+                     verboseIter = TRUE)
 ```
 
 ```{r}
@@ -762,34 +757,32 @@ levels(testing$Fail)=c("No","Yes")
 param_grid = expand.grid(gamma = seq(0, 1, 0.1), lambda = seq(0.1, 0.9, 0.1))
 
 # Train to maximize AUC: metric="ROC"
-ldaFit <- train(Fail ~ ., 
-                method ="rda", 
+ldaFit <- train(change_docs ~ ., 
+                method = "lda", 
                 data = training,
-                tuneGrid = param_grid,
                 preProcess = c("center", "scale"),
-                metric="ROC",
+                metric = "ROC",
                 trControl = ctrl)
 print(ldaFit)
 
 # Predict and validate
-ldaPred = predict(ldaFit, testing)
-confusionMatrix(ldaPred, testing$Fail)
+ldaPred <- predict(ldaFit, testing)
+confusionMatrix(ldaPred, testing$change_docs)
 ```
 
 ### ROC curve
 
 ```{r}
 library(pROC)
-
-bench.model = glm(Fail ~ 1, family=binomial(link='logit'), data=training)
+ldaPredProb <- predict(ldaFit, testing, type = "prob")[, "Yes"]
+bench.model = glm(change_docs ~ 1, family=binomial(link='logit'), data=training)
 prob.bench = predict(bench.model, newdata=testing, type="response")
 
-roc.lda=roc(testing$Fail ~ ldaProb[,2])
-roc.bench=roc(testing$Fail ~ prob.bench)
+roc.lda=roc(testing$change_docs ~ ldaPredProb)
+roc.bench=roc(testing$change_docs ~ prob.bench)
 
 plot(roc.lda, col="red",print.thres=TRUE)
-plot(roc.bench, add=TRUE, col='green',print.thres=TRUE)
-legend("bottomright", legend=c("lda", "bench"), col=c("red",  "green"), lwd=2)
+plot(roc.bench, col='green',print.thres=TRUE)
 
 roc.lda$auc
 roc.bench$auc
@@ -799,11 +792,11 @@ roc.bench$auc
 ### 1. KNN
 
 ```{r}
-knnFit <- train(Fail ~ ., 
+knnFit <- train(change_docs ~ ., 
                   data = training,
                   method = "kknn",   
                   preProc=c('scale','center'),
-                  tuneLength = 10,
+                  tuneLength = 5,
                   metric="ROC",
                   trControl = ctrl)
 plot(knnFit)
@@ -811,8 +804,8 @@ plot(knnFit)
 knnProb = predict(knnFit, testing, type="prob")
 prediction <- as.factor(ifelse(knnProb[,2] > 0.1, "Yes", "No"))
 
-confusionMatrix(prediction, testing$Fail)$table
-confusionMatrix(prediction, testing$Fail)$overall[1:2]
+confusionMatrix(prediction, testing$change_docs)$table
+confusionMatrix(prediction, testing$change_docs)$overall[1:2]
 ```
 
 # Decision Tree (rpart)
@@ -824,7 +817,7 @@ control = rpart.control(minsplit = 30, maxdepth = 10, cp=0.01)
 ```
 
 ```{r}
-model = agree ~.
+model = change_docs ~.
 dtFit <- rpart(model, data=training, method = "class", control = control)
 summary(dtFit)
 ```
@@ -850,11 +843,12 @@ dtPred <- predict(dtFit, testing, type = "class")
 dtProb <- predict(dtFit, testing, type = "prob")
 
 prediction <- as.factor(ifelse(dtProb[,2] > 0.5, "Yes", "No"))
-levels(testing$agree)
+levels(testing$change_docs)
 
-confusionMatrix(prediction, testing$agree)$table
-confusionMatrix(prediction, testing$agree)$overall[1:2]
+confusionMatrix(prediction, testing$change_docs)$table
+confusionMatrix(prediction, testing$change_docs)$overall[1:2]
 ```
+
 
 ## Challenges:
 
