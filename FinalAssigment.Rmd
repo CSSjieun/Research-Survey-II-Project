@@ -774,16 +774,15 @@ confusionMatrix(ldaPred, testing$change_docs)
 
 ```{r}
 library(pROC)
-
+ldaPredProb <- predict(ldaFit, testing, type = "prob")[, "Yes"]
 bench.model = glm(change_docs ~ 1, family=binomial(link='logit'), data=training)
 prob.bench = predict(bench.model, newdata=testing, type="response")
 
-roc.lda=roc(testing$change_docs ~ ldaProb[,2])
+roc.lda=roc(testing$change_docs ~ ldaPredProb)
 roc.bench=roc(testing$change_docs ~ prob.bench)
 
 plot(roc.lda, col="red",print.thres=TRUE)
-plot(roc.bench, add=TRUE, col='green',print.thres=TRUE)
-legend("bottomright", legend=c("lda", "bench"), col=c("red",  "green"), lwd=2)
+plot(roc.bench, col='green',print.thres=TRUE)
 
 roc.lda$auc
 roc.bench$auc
