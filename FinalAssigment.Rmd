@@ -52,20 +52,25 @@ factors. These independent variables are:
     - ORIGIN: country and isocntry
     - GENDER: d10 (then: male)
     - AGE: d11 (then: age_cat)
-    - **EDUCATION: (d8r1) ??????????????????????????**
+    - *EDUCATION: (d8r1)* - EXCLUDED
     - RELIGION: sd3 (then: religion and religion_group)
-    - GENERAL POLITICAL ATTITUDES:
     - POLITICAL STANCE: d1r1 (then: left_right)
+    - UNEMPLOYED: d15a_r1 (then: unemployed) 
+    - LIFE SATISFACTION: d70 (then: Life_satisf)
     
   - LGTBI related aspects at individual level:
     - CONTACT: 
-      - sd1_4 (gay lesbian or bisexual)
-      - sd1_7 (transgender/transexual)
-      - sd1_8 (intersext)
-    - DISCRIMINATION PERCEIVED (LGTBI): qc1 (then: discrimination)
+      - sd1_4 (gay lesbian or bisexual, then: contact_gay)
+      - sd1_7 (transgender/transexual, then: contact_trans)
+      - sd1_8 (intersext, then: contact_inter)
+    - DISCRIMINATION PERCEIVED in country (LGTBI):
+      - qc1_4 DISCRIMINATION IN CTRY: SEXUAL ORIENTATION (then: disc_cntry_sexual)
+      - qc1_8 DISCRIMINATION IN CTRY: BEING TRANSGENDER (then: disc_cntry_trans)
+      - qc1_10 DISCRIMINATION IN CTRY: BEING INTERSEX (then: disc_cntry_inter)
     - ATTITUDES TOWARDS THE LGTBI COMMUNITY:
-    - EXPERIENCES OF DISCRIMINATION (LGTBI):
-    - LAWS & POLICIES:
+      - qc15_1 (then: att_rights_sexual)
+    - EXPERIENCES OF DISCRIMINATION (LGTBI)
+      - qc2t_3  EXPERIENCE DISCRIMINATION: SEXUAL ORIENTATION (SUM) (then: disc_exp)
     
   - Variables at country level:
     - Unemployment rate
@@ -617,7 +622,13 @@ ls_by_country_pct
 # Missing data imputation
 
 ```{r}
-
+library(mice)
+mice_imputed <- data.frame(
+  original = Disc_clean$change_docs,
+  imputed_pmm = complete(mice(titanic_numeric, m=5, method = "pmm", seed=123))$Age,
+  imputed_cart = complete(mice(titanic_numeric, m=5, method = "cart", seed=123))$Age,
+  imputed_lasso = complete(mice(titanic_numeric, m=5, method = "lasso.norm", seed=123))$Age
+)
 ```
 
 
