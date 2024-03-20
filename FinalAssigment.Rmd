@@ -80,9 +80,9 @@ Disc <- read_dta("Data/ZA7575.dta")
 head(Disc$qc19)
 
 Disc_clean <- Disc %>% 
-  select(isocntry,country, d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70,d15a_r1)
+  select(isocntry,country, d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70, d15a_r1)
 
-unique(Disc$isocntry)
+unique(Disc_clean$isocntry)
 ```
 
 ## Encoding: the individual perspective
@@ -129,6 +129,24 @@ Disc_clean <- Disc_clean |> mutate(country = case_when(
 print(Disc_clean)
 ```
 
+### Encoding **dependent** variable
+### qc19
+
+Convert numeric answers from qc19 to character answers
+
+```{r}
+Disc_clean <- Disc_clean |> mutate(change_docs = case_when(
+  qc19 == 1 ~ "Yes",
+  qc19 == 2 ~ "No", 
+  qc19 == 3 ~ "DK", 
+  TRUE ~ NA_character_))
+
+Disc_clean$change_docs <- factor(Disc_clean$change_docs, levels=c("Yes","No","DK"))
+
+with(Disc_clean, table(country, change_docs))
+```
+
+### Encoding **independent variables**
 ### 1. Gender (Indepdent Variable)
 
 Encoding gender:
@@ -241,6 +259,7 @@ Disc_clean <- Disc_clean %>%
 
 with(Disc_clean, table(country, religion))
 ```
+
 ### 5-2. Religion (Independent Variable) - Religious or not
 
 We also create another factor variable to capture in general terms if the person is religious or not:
@@ -369,6 +388,7 @@ GDP1 <- GDP |>
 
 options(scipen = 999)
 GDP1[26,1] <- "Slovakia"
+GDP1[18,1] <- "Czech Republic"
 
 GDP1
 ```
@@ -379,43 +399,29 @@ GDP1
 install.packages("xlsx")
 library(tidyr)
 library(dplyr)
-library(xlsx)
 
 religion <- readxl::read_excel("./Data/Religious_Composition_by_Country_2010-2050.xlsx")
 head(religion)
-
-unique(religion$Year)
 
 religion <- religion |> filter(Year == 2020)
 religion <- religion |> filter(Region == "Europe")
 religion <- religion |> select(Country, "All Religions")
 
-print(religion)
-
 religion <- religion |> rename("country" = "Country")
 
-survey2 <- survey |> left_join(religion)
+# cypurs = 1,041,228
 
-survey2[5,10] = "1,041,228"
+religion$"All Religions" <- as.numeric(gsub(",", "", religion$"All Religions"))
+religion <- religion |> rename("all_religion" = "All Religions")
 
-survey2$"All Religions" <- as.numeric(gsub(",", "", survey2$"All Religions"))
+cyprus <- tibble(country = c("Cyprus"), all_religion = c(1041228))
+religion <- rbind(religion, cyprus)
 
-survey2 <- as.data.frame(survey2)
-survey2 <- survey2 |> rename("all_religion" = "All Religions")
-survey2[6,1] <- "Czechia" 
-print(survey2)
+religion <- religion |> filter(country != "Vatican City")
+
+
+print(religion)
 ```
-
-Joining GDP per capita and total GDP to the main dataset. 
-
-```{r}
-# select(GDP, GDP_per_capita, country)
-survey2 <- left_join(survey2, GDP1, by = c("country" = "Country")) 
-survey2 <- survey2 |> select(!"Country Code")
-
-print(survey2)
-```
-
 
 RAINBOW DATASET
 
@@ -452,24 +458,18 @@ rainbow_2019 |>
   head(5)
 ```
 
-## Merging survey2 and rainbow_2019
-
-```{r}
-survey2 <- left_join(survey2, rainbow_2019)
-print(survey2)
-```
 
 ### 11. Unemployment (Independent variable)
 
 ```{r}
 library(dplyr)
-unemployment_cnty <- read.csv("./Data/API_SL.UEM.TOTL.ZS_DS2_en_csv_v2_80.csv", skip = 4, header = TRUE)
-unemployment_cnty <- unemployment_cnty |> select("Country.Name", "X2019")
+unemployment_cntry <- read.csv("./Data/API_SL.UEM.TOTL.ZS_DS2_en_csv_v2_80.csv", skip = 4, header = TRUE)
+unemployment_cntry <- unemployment_cntry |> select("Country.Name", "X2019")
 
-unemployment_cnty <- unemployment_cnty |> rename("country" = "Country.Name")
-unemployment_cnty <- unemployment_cnty |> rename("unemployement_rate" = "2019")
-
-survey2 |> left_join(unemployment_cntry)
+unemployment_cntry <- unemployment_cntry |> rename("country" = "Country.Name")
+unemployment_cntry <- unemployment_cntry |> rename("unemployement_rate" = "X2019")
+unemployment_cntry$country <- gsub("Czechia", "Czech Republic", unemployment_cntry$country)
+unemployment_cntry$country <- gsub("Slovak Republic", "Slovakia", unemployment_cntry$country)
 ```
 
 ### 12. Political Regimes (Independent variable)
@@ -482,7 +482,6 @@ View(political_regime_1_)
 
 ```{r}
 library(dplyr)
-
 political_regime1 <- political_regime %>%
   filter(Year == "2019" & 
          Entity %in% c("Belgium", "Denmark", "Greece", "Spain", "Finland", "France", 
@@ -505,30 +504,26 @@ political_regime1 <- political_regime1 %>%
   mutate(pol_regimen = factor(pol_regimen,
                               levels = c("electoral autocracies", "electoral democracies", "liberal democracies")))
 
-political_regime1 %>%
-  select(Entity, `Political regime`, pol_regimen)
-```
-
 ## Merging survey2 and political_regime1
 
 ```{r}
 survey2 <- left_join(survey2, political_regime1, by = c("country" = "Entity")) 
 ```
 
-### 1. Encoding **dependent** variable: qc19
-
-Convert numeric answers from qc19 to character answers
+## Merging data
 
 ```{r}
-Disc_clean <- Disc_clean |> mutate(change_docs = case_when(
-  qc19 == 1 ~ "Yes",
-  qc19 == 2 ~ "No", 
-  qc19 == 3 ~ "DK", 
-  TRUE ~ NA_character_))
+# select(GDP, GDP_per_capita, country)
+survey <- left_join(Disc_clean, GDP1, by = c("country" = "Country")) 
+# merge religion data
+survey <- left_join(survey, religion, by=c("country" = "country"))
+# merge rainbow_2019
+survey <- left_join(survey, rainbow_2019, by=c("country" = "country"))
+# merge unemployment
+survey <- left_join(survey, unemployment_cntry, by=c("country" = "country"))
 
-Disc_clean$change_docs <- factor(Disc_clean$change_docs, levels=c("Yes","No","DK"))
 
-with(Disc_clean, table(country, change_docs))
+print(survey)
 ```
 
 ## Measuring supprotiveness for LGBTI communities in different countries
@@ -603,11 +598,12 @@ ls_by_country <- Disc_clean %>%
 
 ls_by_country
 ```
+
 ### Life Satisfaction percentage
 
 ```{r}
 #percentage counts 
-survey <- Disc_clean %>%
+ls_by_country_pct <- Disc_clean %>%
   group_by(country, Life_satisf) %>%
   summarise(count = n()) %>%
   ungroup() %>%
@@ -617,26 +613,29 @@ survey <- Disc_clean %>%
   select(country, Life_satisf, percentage) %>%
   pivot_wider(names_from = Life_satisf, values_from = percentage, values_fill = 0)
 
-survey
+ls_by_country_pct
+```
+
+# Missing data imputation
+
+```{r}
+
 ```
 
 
-### Missing data imputation
+# GOALS
 
-# Linear Regression
+## 1. Cross-country differences in supporting levels:
+
+### Simple Linear Regression
 
 ```{r}
 lm(survey2 ~ )
 ```
 
+### Logistic Regression
 
-## GOALS
-
-### 1. Cross-country differences in supporting levels:
-
-
-
-### 2. Predictive model for other countries:
+## 2. Predictive model for other countries:
 
 ### 1. Decision Tree
 
@@ -712,3 +711,5 @@ confusionMatrix(prediction, testing$satisfy_label)$overall[1:2]
 ## Challenges:
 
 In the encoding process, some variables like education () were difficult to encode as we were interested in the level of education, not the age when the participant stopped full-time studies (which does not imply neccesarily the level of studies acquired). A correlation with the ISCED levels could be possible but not rigorous (e.g. older people obtaining their highschool diploma).
+
+
