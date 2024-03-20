@@ -440,12 +440,64 @@ Each country has a score based on the presence or absence of these laws and poli
 ```{r}
 library(readxl)
 rainbow_2019 <- read_excel("rainbow-2019.xlsx")
+
 head(rainbow_2019)
 rainbow_2019 <- rainbow_2019 |> rename("country" = "Country")
 
 rainbow_2019 <- rainbow_2019 |> select(country,"Constitution (gender identity) ()",
                                        "Employment (gender identity) ()", "Education (gender identity) ()",
                                        "LGBTI human rights defenders are not at risk ()", "Score")
+```
+
+
+```{r}
+rainbow_2019 <- rainbow_2019 %>% 
+  mutate(constitution_gender_identity = case_when(
+    `Constitution (gender identity) ()` == 1 ~ "national/federal application",
+    `Constitution (gender identity) ()` == 2 ~ "applicable is some regions only", 
+    `Constitution (gender identity) ()` == 3 ~ "No applications",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(constitution_gender_identity = factor(constitution_gender_identity,
+                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
+
+```
+
+```{r}
+rainbow_2019 <- rainbow_2019 %>% 
+  mutate(employment_gender_identity = case_when(
+    `Employment (gender identity) ()` == 1 ~ "national/federal application",
+    `Employment (gender identity) ()` == 2 ~ "applicable is some regions only", 
+    `Employment (gender identity) ()` == 3 ~ "No applications",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(employment_gender_identity = factor(employment_gender_identity,
+                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
+```
+
+```{r}
+rainbow_2019 <-rainbow_2019 %>% 
+  mutate(education_gender_identity = case_when(
+    `Education (gender identity) ()` == 1 ~ "national/federal application",
+    `Education (gender identity) ()` == 2 ~ "applicable is some regions only", 
+    `Education (gender identity) ()` == 3 ~ "No applications",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(education_gender_identity = factor(education_gender_identity,
+                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
+```
+
+```{r}
+rainbow_2019 <- rainbow_2019 %>% 
+  mutate(LGBTI_human_rights_not_risk = case_when(
+    `LGBTI human rights defenders are not at risk ()` == 1 ~ "national/federal application",
+    `LGBTI human rights defenders are not at risk ()` == 2 ~ "applicable is some regions only", 
+    `LGBTI human rights defenders are not at risk ()` == 3 ~ "No applications",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(LGBTI_human_rights_not_risk = factor(LGBTI_human_rights_not_risk,
+                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
+
 ```
 
 ```{r}
@@ -620,13 +672,11 @@ corrplot(cor(df_imput_n), method = "number")
 
 ## 1. Cross-country differences in supporting levels:
 
-### Simple Linear Regression
+### Logistic Regression
 
 ```{r}
-lm(change_docs ~ )
+LR <- glm(change_docs ~. , data = survey, family = "binomial")
 ```
-
-### Logistic Regression
 
 ## 2. Predictive model for other countries:
 
