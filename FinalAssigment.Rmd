@@ -476,8 +476,8 @@ unemployment_cntry$country <- gsub("Slovak Republic", "Slovakia", unemployment_c
 
 ```{r}
 library(readr)
-political_regime <- read_csv("Data/political-regime (1).csv")
-View(political_regime_1_)
+political_regime <- read_csv("Data/political-regime.csv")
+
 ```
 
 ```{r}
@@ -491,6 +491,8 @@ political_regime1 <- political_regime %>%
                        "Lithuania", "Malta", "Poland", "Romania", "Slovakia", 
                        "Slovenia", "Croatia"))
 
+
+political_regime1$Entity <- gsub("Czechia", "Czech Republic", political_regime1$Entity)
 ```
 
 ```{r}
@@ -503,11 +505,6 @@ political_regime1 <- political_regime1 %>%
   )) %>%
   mutate(pol_regimen = factor(pol_regimen,
                               levels = c("electoral autocracies", "electoral democracies", "liberal democracies")))
-
-## Merging survey2 and political_regime1
-
-```{r}
-survey2 <- left_join(survey2, political_regime1, by = c("country" = "Entity")) 
 ```
 
 ## Merging data
@@ -521,7 +518,8 @@ survey <- left_join(survey, religion, by=c("country" = "country"))
 survey <- left_join(survey, rainbow_2019, by=c("country" = "country"))
 # merge unemployment
 survey <- left_join(survey, unemployment_cntry, by=c("country" = "country"))
-
+# Merging survey2 and political_regime1
+survey <- left_join(survey, political_regime1, by = c("country" = "Entity")) 
 
 print(survey)
 ```
