@@ -490,6 +490,7 @@ political_regime1 <- political_regime %>%
                        "Cyprus", "Czechia", "Estonia", "Hungary", "Latvia", 
                        "Lithuania", "Malta", "Poland", "Romania", "Slovakia", 
                        "Slovenia", "Croatia"))
+
 ```
 
 ```{r}
@@ -502,9 +503,6 @@ political_regime1 <- political_regime1 %>%
   )) %>%
   mutate(pol_regimen = factor(pol_regimen,
                               levels = c("electoral autocracies", "electoral democracies", "liberal democracies")))
-political_regime1 %>%
-  select(Entity, `Political regime`, pol_regimen)
-```
 
 ## Merging survey2 and political_regime1
 
