@@ -154,6 +154,9 @@ Disc_clean <- Disc_clean %>%
   mutate(male = car::recode(d10, "2=0"),
     male = factor(male, levels = c(0, 1), labels = c("female", "male")))
 
+Disc_clean$male <- ifelse(Disc_clean$male == "No", 0, 
+                                 ifelse(Disc_clean$male== "Yes", 1, NA))
+
 # Distribution of gender surveyed per country
 table(Disc_clean$country, Disc_clean$male)
 ```
@@ -628,41 +631,47 @@ ls_by_country_pct
 # Missing data imputation
 
 ```{r}
-sapply(survey, function(x) sum(is.na(x))*100/nrow(survey))
+sapply(survey_n_simple, function(x) sum(is.na(x))*100/nrow(survey_n_simple))
 
+# categorical variable
+survey_c = survey |> select(country, male, age_cat, left_right, religion, religion_group, Life_satisf)
+table(is.na(survey_c))
 # numerical variable
 survey_n = survey |> select(-country, -male, -age_cat, -left_right, -religion, -religion_group, -Life_satisf)
 # we separated two dataset since the scale of data in those two dataset are too different
-survey_n_simple <- survey_n |> select(d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70, d15a_r1,
-                                   change_docs, contact_gay, contact_trans, contact_inter, unemployed,
-                                   constitution_rb, employment_rb, education_rb, defenders_at_risk_rb)
+survey_n_simple <- survey_n |> select(constitution_rb, employment_rb, education_rb, defenders_at_risk_rb)
 survey_n_complex <- survey_n |> select(GDP_per_capita, all_religion, score_rb, unemployement_rate)
+survey_n_dummy <- survey_n |> select(unemployed, contact_gay, contact_trans, contact_inter, change_docs)
 
 md.pattern(survey_n_simple)
 md.pattern(survey_n_complex)
+md.pattern(survey_n_dummy)
 
 m = 4 # number of multiple imputations, we are going to make 5 iterations, we're going to predict missing values 4 times.
 # survey_n_simple
-mice_mod_c = mice(survey_n_simple, m = m, method='cart', seed = 123) # machine learning tool, rf = random forest
-survey_n_c_imputed <- complete(mice_mod_c, action=m) 
+mice_mod_s = mice(survey_n_simple, m = m, method='cart', seed = 123) # machine learning tool, rf = random forest
+survey_n_s_imputed <- complete(mice_mod_s, action=m) 
 
-colSums(is.na(survey_n_c_imputed))
+colSums(is.na(survey_n_s_imputed))
+
+# survey_n_dummy
+mice_mod_d = mice(survey_n_dummy, m = m, method='cart', seed = 123) # machine learning tool, rf = random forest
+survey_n_d_imputed <- complete(mice_mod_d, action=m) 
+
+colSums(is.na(survey_n_d_imputed))
 
 # survey_n_complex
 mice_mod_c = mice(survey_n_complex, m = m, method='rf', seed = 2345) # machine learning tool, rf = random forest
 survey_n_c_imputed <- complete(mice_mod_c, action=m) 
+
+colSums(is.na(survey_n_c_imputed))
 ```
 
 ## Data frame
 
 ```{r}
-df_imput_n = df_imput[,4:ncol(df_imput)]
-
-table(is.na(df_imput_n))
-
-name = df_imput$country
-continent = df_imput$continent
-
+survey_n_imputed <- cbind(survey_n_s_imputed, survey_n_d_imputed, survey_n_c_imputed)
+  
 library(corrplot)
 corrplot(cor(df_imput_n), method = "number")
 ```
