@@ -179,30 +179,8 @@ Disc_clean <- Disc_clean |>
 with(Disc_clean, table(country, age_cat))
 ```
 
-### 3. Education (Independent Variable)
 
-The education variable per categories is the following:
-1	Up to 14 years			
-2	15 years			
-3	16 years			
-4	17 years			
-5	18 years			
-6	19 years			
-7	20 years			
-8	21 years			
-9	22 years and older			
-10	Still studying
-11	No full-time education			
-97	Refusal			
-98	DK
-
-```{r}
-
-
-```
-
-
-### 4. Political stance: left-center-right (Independent Variable)
+### 3. Political stance: left-center-right (Independent Variable)
 
 Encoding political stance (left-right):
 
@@ -223,7 +201,7 @@ Disc_clean <- Disc_clean |>
 with(Disc_clean, table(country, left_right))
 ```
 
-### 5-1. Religion (Independent Variable) - Religion orientation
+### 4-1. Religion (Independent Variable) - Religion orientation
 
 Encoding religion variable. Original:
 1	Catholic			
@@ -258,7 +236,7 @@ Disc_clean <- Disc_clean %>%
 with(Disc_clean, table(country, religion))
 ```
 
-### 5-2. Religion (Independent Variable) - Religious or not
+### 4-2. Religion (Independent Variable) - Religious or not
 
 We also create another factor variable to capture in general terms if the person is religious or not:
 
@@ -285,7 +263,7 @@ Disc_clean <- Disc_clean |>
 with(Disc_clean, table(country, religion_group))
 ```
 
-### 5-3. Religion (Independent Variable) - Contact with LGBT community
+### 4-3. Religion (Independent Variable) - Contact with LGBT community
 
 Original question: "Do you have friends or acquaintances who are…?" Variables:
 sd1_4 CONTACT: gay lesbian or bisexual
@@ -330,7 +308,7 @@ with(Disc_clean, table(country, contact_trans))
 with(Disc_clean, table(country, contact_inter))
 ```
 
-### 6. Life satisfaction (Independent variable) 
+### 5. Life satisfaction (Independent variable) 
 
 ```{r}
 Disc_clean <- Disc_clean %>% mutate(Life_satisf = case_when(
@@ -342,7 +320,7 @@ Disc_clean <- Disc_clean %>% mutate(Life_satisf = case_when(
   TRUE ~ NA_character_))  
 ```
 
-### 7. Unemployement (Independent variable)
+### 6. Unemployement (Independent variable)
 
 ```{r}
 Disc_clean <- Disc_clean %>% 
@@ -366,7 +344,7 @@ unique(Disc_clean$unemployed)
 
 ### Country_level independent variables
 
-### 8. GDP per capita (Independent Variable) 
+### 7. GDP per capita (Independent Variable) 
 
 ```{r}
 #dataset from World Bank 
@@ -397,7 +375,7 @@ GDP1 <- GDP1 |> select(Country, GDP_per_capita) |> mutate(GDP_per_capita = round
 
 ```
 
-### 9. Religious data (Independent Variable)
+### 8. Religious data (Independent Variable)
 
 ```{r}
 install.packages("xlsx")
@@ -435,7 +413,7 @@ The following dataset is from the "Rainbow index 2019" of ILGA-EUROPE’S annual
 
 Each country has a score based on the presence or absence of these laws and policies, as well as the comprehensiveness and effectiveness of such measures,the total score at the end of the dataset reflects the overall level of LGBTQI+ equality in each country (the higher score the better LGBTQI+ equality within the country). 
 
-### 10. Rainbow (Independent variable)
+### 9. Rainbow (Independent variable)
 
 ```{r}
 library(readxl)
@@ -447,6 +425,13 @@ rainbow_2019 <- rainbow_2019 |> rename("country" = "Country")
 rainbow_2019 <- rainbow_2019 |> select(country,"Constitution (gender identity) ()",
                                        "Employment (gender identity) ()", "Education (gender identity) ()",
                                        "LGBTI human rights defenders are not at risk ()", "Score")
+
+rainbow_2019 <- rainbow_2019 |> rename("constitution_rb" = "Constitution (gender identity) ()",
+                                       "employment_rb" = "Employment (gender identity) ()",
+                                       "education_rb" = "Education (gender identity) ()",
+                                       "defenders_at_risk_rb" = "LGBTI human rights defenders are not at risk ()",
+                                       "score_rb" = "Score")
+
 ```
 
 
@@ -515,7 +500,7 @@ rainbow_2019 |>
 ```
 
 
-### 11. Unemployment (Independent variable)
+### 10. Unemployment (Independent variable)
 
 ```{r}
 library(dplyr)
@@ -528,7 +513,7 @@ unemployment_cntry$country <- gsub("Czechia", "Czech Republic", unemployment_cnt
 unemployment_cntry$country <- gsub("Slovak Republic", "Slovakia", unemployment_cntry$country)
 ```
 
-### 12. Political Regimes (Independent variable)
+### 11. Political Regimes (Independent variable)
 
 ## Merging data
 
@@ -645,13 +630,27 @@ ls_by_country_pct
 ```{r}
 sapply(survey, function(x) sum(is.na(x))*100/nrow(survey))
 
+# numerical variable
 survey_n = survey |> select(-country, -male, -age_cat, -left_right, -religion, -religion_group, -Life_satisf)
+# we separated two dataset since the scale of data in those two dataset are too different
+survey_n_simple <- survey_n |> select(d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19, qc20, d70, d15a_r1,
+                                   change_docs, contact_gay, contact_trans, contact_inter, unemployed,
+                                   constitution_rb, employment_rb, education_rb, defenders_at_risk_rb)
+survey_n_complex <- survey_n |> select(GDP_per_capita, all_religion, score_rb, unemployement_rate)
 
-md.pattern(survey_n)
+md.pattern(survey_n_simple)
+md.pattern(survey_n_complex)
 
-m = 4 # number of multiple imputations, we are going to make 4 iterations, we're going to predict missing values 4 times.
-mice_mod = mice(survey_n, m = m, method='rf', seed = 2345) # machine learning tool, rf = random forest
-df_imput <- complete(mice_mod, action=m) # replace missiong value with the mice_mod
+m = 4 # number of multiple imputations, we are going to make 5 iterations, we're going to predict missing values 4 times.
+# survey_n_simple
+mice_mod_c = mice(survey_n_simple, m = m, method='cart', seed = 123) # machine learning tool, rf = random forest
+survey_n_c_imputed <- complete(mice_mod_c, action=m) 
+
+colSums(is.na(survey_n_c_imputed))
+
+# survey_n_complex
+mice_mod_c = mice(survey_n_complex, m = m, method='rf', seed = 2345) # machine learning tool, rf = random forest
+survey_n_c_imputed <- complete(mice_mod_c, action=m) 
 ```
 
 ## Data frame
