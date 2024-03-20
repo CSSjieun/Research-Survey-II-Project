@@ -704,6 +704,18 @@ library(corrplot)
 corrplot(cor(survey_n_imputed), method = "number")
 ```
 
+### Final dataset
+
+```{r}
+survey_imputed <- survey_imputed |> select(-d10, -d11, -d8r1, -d1r1, -sd3,
+                                           -sd1_4, -sd1_7, -sd1_8, -qc19,  
+                                           -qc20, -d70, -d15a_r1)
+
+# only numberical variable
+survey_n_imputed <- survey_imputed |> select(-country, -isocntry)
+```
+
+
 # GOALS
 
 ## 1. Cross-country differences in supporting levels:
@@ -711,7 +723,7 @@ corrplot(cor(survey_n_imputed), method = "number")
 ### Logistic Regression
 
 ```{r}
-LR <- glm(change_docs ~. , data = survey, family = "binomial")
+LR <- glm(change_docs ~. , data = survey_n_imputed, family = "binomial")
 ```
 
 ## 2. Predictive model for other countries:
