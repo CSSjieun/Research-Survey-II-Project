@@ -463,72 +463,12 @@ rainbow_2019 <- rainbow_2019 |> rename("constitution_rb" = "Constitution (gender
 
 ```
 
-# ...!!
-
-```{r}
-rainbow_2019 <- rainbow_2019 %>% 
-  mutate(constitution_gender_identity = case_when(
-    `Constitution (gender identity) ()` == 1 ~ "national/federal application",
-    `Constitution (gender identity) ()` == 2 ~ "applicable is some regions only", 
-    `Constitution (gender identity) ()` == 3 ~ "No applications",
-    TRUE ~ NA_character_  
-  )) %>%
-  mutate(constitution_gender_identity = factor(constitution_gender_identity,
-                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
-
-```
-
-```{r}
-rainbow_2019 <- rainbow_2019 %>% 
-  mutate(employment_gender_identity = case_when(
-    `Employment (gender identity) ()` == 1 ~ "national/federal application",
-    `Employment (gender identity) ()` == 2 ~ "applicable is some regions only", 
-    `Employment (gender identity) ()` == 3 ~ "No applications",
-    TRUE ~ NA_character_  
-  )) %>%
-  mutate(employment_gender_identity = factor(employment_gender_identity,
-                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
-```
-
-```{r}
-rainbow_2019 <-rainbow_2019 %>% 
-  mutate(education_gender_identity = case_when(
-    `Education (gender identity) ()` == 1 ~ "national/federal application",
-    `Education (gender identity) ()` == 2 ~ "applicable is some regions only", 
-    `Education (gender identity) ()` == 3 ~ "No applications",
-    TRUE ~ NA_character_  
-  )) %>%
-  mutate(education_gender_identity = factor(education_gender_identity,
-                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
-```
-
-```{r}
-rainbow_2019 <- rainbow_2019 %>% 
-  mutate(LGBTI_human_rights_not_risk = case_when(
-    `LGBTI human rights defenders are not at risk ()` == 1 ~ "national/federal application",
-    `LGBTI human rights defenders are not at risk ()` == 2 ~ "applicable is some regions only", 
-    `LGBTI human rights defenders are not at risk ()` == 3 ~ "No applications",
-    TRUE ~ NA_character_  
-  )) %>%
-  mutate(LGBTI_human_rights_not_risk = factor(LGBTI_human_rights_not_risk,
-                              levels = c("national/federal application", "applicable is some regions only", "No applications")))
-
-```
-
-```{r}
-#Top 5 countries with the highest score of LGBTQI+ equality
-rainbow_2019 |> 
-  arrange(desc(`score_rb`)) |> 
-  head(5)
-```
-
 ```{r}
 #Top 5 countries with the lowest score of LGBTQI+ equality
 rainbow_2019 |> 
   arrange(`score_rb`) |> 
   head(5)
 ```
-
 
 ### 10. Unemployment (Independent variable)
 
@@ -545,6 +485,42 @@ unemployment_cntry$country <- gsub("Slovak Republic", "Slovakia", unemployment_c
 
 ### 11. Political Regimes (Independent variable)
 
+```{r}
+library(readr)
+political_regime <- read_csv("Data/political-regime.csv")
+```
+
+```{r}
+library(dplyr)
+political_regime <- political_regime |> rename("Political_regime" = "Political regime")
+political_regime1 <- political_regime %>%
+  filter(Year == "2019" & 
+         Entity %in% c("Belgium", "Denmark", "Greece", "Spain", "Finland", "France", 
+                       "Ireland", "Italy", "Luxembourg", "Netherlands", "Austria", 
+                       "Portugal", "Sweden", "Germany", "United Kingdom", "Bulgaria", 
+                       "Cyprus", "Czechia", "Estonia", "Hungary", "Latvia", 
+                       "Lithuania", "Malta", "Poland", "Romania", "Slovakia", 
+                       "Slovenia", "Croatia"))
+```
+
+```{r}
+political_regime1 <- political_regime1 %>% 
+  mutate(pol_regimen = case_when(
+    `Political_regime` == 1 ~ "electoral autocracies",
+    `Political_regime` == 2 ~ "electoral democracies", 
+    `Political_regime` == 3 ~ "liberal democracies",
+    TRUE ~ NA_character_  
+  )) %>%
+  mutate(pol_regimen = factor(pol_regimen,
+                              levels = c("electoral autocracies", "electoral democracies", "liberal democracies")))
+
+political_regime_c <- political_regime1 %>%
+  select(Entity, `Political_regime`)
+
+
+```
+
+
 ## Merging data
 
 ```{r}
@@ -556,6 +532,9 @@ survey <- left_join(survey, religion, by=c("country" = "country"))
 survey <- left_join(survey, rainbow_2019, by=c("country" = "country"))
 # merge unemployment
 survey <- left_join(survey, unemployment_cntry, by=c("country" = "country"))
+# merge political regime
+survey <- left_join(survey, political_regime_c, by = c("country" = "Entity"))
+
 survey$change_docs <- ifelse(Disc_clean$change_docs == "Yes", 1,
                              ifelse(Disc_clean$change_docs == "No", 0, NA))
 survey <- survey |> mutate(across(c(d10, d11, d8r1, d1r1, sd3, sd1_4, sd1_7, sd1_8, qc19,
@@ -667,7 +646,7 @@ survey_n = survey |> select(-country, -isocntry)
 
 # we separated two dataset since the scale of data in those two dataset are too different
 survey_n_simple <- survey_n |> select(constitution_rb, employment_rb, education_rb, defenders_at_risk_rb, left_right,
-                                      religion, religion_group, score_rb)
+                                      religion, religion_group, score_rb, Political_regime)
 survey_n_dummy <- survey_n |> select(unemployed, contact_gay, contact_trans, contact_inter, change_docs)
 
 md.pattern(survey_n_simple)
@@ -692,7 +671,7 @@ colSums(is.na(survey_n_d_imputed))
 ```{r}
 survey <- survey |> select(-unemployed, -contact_gay, -contact_trans, -contact_inter, -change_docs,
                  -constitution_rb, -employment_rb, -education_rb, -defenders_at_risk_rb, -left_right,
-                -religion, -religion_group, -score_rb)
+                -religion, -religion_group, -score_rb, -Political_regime)
 survey_imputed <- cbind(survey, survey_n_s_imputed, survey_n_d_imputed)
 
 colSums(is.na(survey_imputed))
@@ -724,6 +703,15 @@ survey_n_imputed <- survey_imputed |> select(-country, -isocntry)
 
 ```{r}
 LR <- glm(change_docs ~. , data = survey_n_imputed, family = "binomial")
+summary(LR)
+```
+
+### Logistic regression (country)
+
+```{r}
+m0b <- glm(change_docs ~ male + age_cat + I(age_cat^2) + I(GDP_per_capita^2) + I(contact_trans^2) + I(unemployed^2) +
+           I(education_rb^2) + factor(country), survey_imputed, family=binomial(link = "logit"))
+summary(m0b)
 ```
 
 ## 2. Predictive model for other countries:
